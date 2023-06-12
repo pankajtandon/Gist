@@ -1,4 +1,3 @@
-
 # from scipy import spatial
 # import ast  # for converting embeddings saved as strings back to arrays
 # import openai  # for calling the OpenAI API
@@ -8,6 +7,7 @@ import streamlit as st
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains.question_answering import load_qa_chain
 from langchain.llms import OpenAI
@@ -17,6 +17,15 @@ PAGE_CONFIG = {"page_title": "Hello baby!", "page_icon": "smiley", "layout": "ce
 st.set_page_config(**PAGE_CONFIG)
 st.title("Welcome to our world!")
 st.subheader("We are head over heels!")
+
+embeddings_option = st.selectbox(
+    label = 'Which Embeddings engine to use?',
+    options= ['HuggingFaceEmbeddings - Free but slow', 'OpenAIEmbeddings - Fast but costs']
+)
+
+print(embeddings_option)
+
+
 pdf = st.file_uploader("Upload your PDF", type = "PDF")
 
 if pdf is not None:
@@ -24,20 +33,26 @@ if pdf is not None:
     content = ""
     for page in pdf_reader.pages:
         content += page.extract_text()
-    st.write("====Content====")
-    st.write(content)
+    # st.write("====Content====")
+    # st.write(content)
 
     # Chunk out the file
     text_splitter = CharacterTextSplitter(separator=" ", chunk_size= 160, chunk_overlap = 15, length_function= len)
     chunks = text_splitter.split_text(content)
 
-    st.write("====Chunks====")
-    st.write(chunks)
+    # st.write("====Chunks====")
+    # st.write(chunks)
 
     #Ask the question
     question = st.text_input("Ask me something about the PDF that you just uploaded:")
     if question:
-        embeddings = OpenAIEmbeddings()
+        if embeddings_option.startswith("HuggingFace"):
+            embeddings = HuggingFaceEmbeddings()
+            st.write("Using HuggingFaceEmbeddings")
+        else:
+            embeddings = OpenAIEmbeddings()
+            st.write("Using OpenAIEmbeddings")
+        
 
         # These are the vectorized chunks:
         knowledge_base = FAISS.from_texts(chunks, embeddings)
